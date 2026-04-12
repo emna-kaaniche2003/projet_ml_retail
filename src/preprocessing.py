@@ -109,14 +109,11 @@ def engineer_features(df: pd.DataFrame) -> pd.DataFrame:
         df.drop(columns=["LastLoginIP"], inplace=True)
         print("[engineer] LastLoginIP → IP_IsPrivate + IP_FirstOctet")
 
-    # --- Features dérivées monétaires ---
-    if "MonetaryTotal" in df.columns and "Recency" in df.columns:
-        df["MonetaryPerDay"] = df["MonetaryTotal"] / (df["Recency"] + 1)
+   
     if "MonetaryTotal" in df.columns and "Frequency" in df.columns:
         df["AvgBasketValue"] = df["MonetaryTotal"] / df["Frequency"].replace(0, np.nan)
-    if "Recency" in df.columns and "CustomerTenureDays" in df.columns:
-        df["TenureRatio"] = df["Recency"] / (df["CustomerTenureDays"] + 1)
-
+        
+    
     print(f"[engineer] Colonnes après feature engineering : {df.shape[1]}")
     return df
 
@@ -130,8 +127,19 @@ def split_data(df: pd.DataFrame,
                test_size: float = 0.2,
                random_state: int = 42):
   
-    # CustomerID n'est jamais une feature prédictive
-    cols_to_exclude = [c for c in ["CustomerID", target_col] if c in df.columns]
+    leakage_cols = [
+        "Recency", 
+        "ChurnRiskCategory", 
+        "RFMSegment",
+        "CustomerTenureDays",
+        "FirstPurchaseDaysAgo",
+        "CustomerType"
+    ]
+
+    # Fusion avec CustomerID et target
+    cols_to_exclude = ["CustomerID", target_col] + leakage_cols
+    cols_to_exclude = [c for c in cols_to_exclude if c in df.columns]
+    
     X = df.drop(columns=cols_to_exclude)
     y = df[target_col]
 
@@ -231,11 +239,10 @@ def impute_numeric(X_train: pd.DataFrame,
 # ÉTAPE 6 : ENCODAGE ORDINAL
 # ─────────────────────────────────────────────────────────
 
-# Mappings ordinaux (hiérarchie naturelle définie par le métier)
+
 ORDINAL_MAPPINGS = {
     "LoyaltyLevel": {
         "Nouveau": 1, "Jeune": 2, "Établi": 3, "Ancien": 4
-        # Note : "Inconnu" absent de ce dataset mais on le gère par précaution
     },
     "AgeCategory": {
         "Inconnu": 0, "18-24": 1, "25-34": 2, "35-44": 3,
@@ -244,14 +251,8 @@ ORDINAL_MAPPINGS = {
     "SpendingCategory": {
         "Low": 1, "Medium": 2, "High": 3, "VIP": 4
     },
-    "ChurnRiskCategory": {
-        "Faible": 1, "Moyen": 2, "Élevé": 3, "Critique": 4
-    },
     "BasketSizeCategory": {
         "Inconnu": 0, "Petit": 1, "Moyen": 2, "Grand": 3
-    },
-    "RFMSegment": {
-        "Dormants": 0, "Potentiels": 1, "Fidèles": 2, "Champions": 3
     },
     "PreferredTimeOfDay": {
         "Nuit": 0, "Matin": 1, "Midi": 2, "Après-midi": 3, "Soir": 4
@@ -289,7 +290,6 @@ ONE_HOT_COLS = [
     "FavoriteSeason",
     "Region",
     "AccountStatus",
-    "CustomerType",
 ]
 
 

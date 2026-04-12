@@ -1,5 +1,6 @@
 \section{Prétraitement des Données (Preprocessing)}
 
+\subsection{Introduction}
 La phase de prétraitement est une étape critique de notre pipeline. L'objectif est de transformer nos données brutes en une matrice mathématique compréhensible par nos algorithmes de Machine Learning, tout en évitant rigoureusement toute fuite de données (\textit{Data Leakage}).
 
 \subsection{Nettoyage initial et Feature Engineering}
@@ -37,3 +38,7 @@ Afin de mettre toutes les variables sur un pied d'égalité, nous avons appliqu�
 \begin{tcolorbox}[title=Justification Stratégique]
 	Nous avons pris soin d'appliquer cette normalisation \textbf{uniquement sur les variables continues}. Les variables binaires (issues du One-Hot Encoding) n'ont pas été normalisées afin de préserver leur interprétabilité stricte (0 ou 1) et d'éviter de distordre leur poids statistique.
 \end{tcolorbox}
+
+\subsection{Conclusion }
+En conclusion, ce pipeline de prétraitement a permis de convertir une base de données brute et hétérogène en un jeu de données structuré et normalisé de $(n)$ colonnes prédictives. En isolant strictement le jeu de test dès le départ et en adaptant chaque technique d'encodage à la nature spécifique des variables (Ordinale, One-Hot, Target), nous avons minimisé le risque de surapprentissage (\textit{overfitting}). 
+Maintenant, les données sont désormais prêtes pour la phase de \textbf{Modeling}.

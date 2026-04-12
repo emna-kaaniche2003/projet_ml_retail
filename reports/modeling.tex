@@ -1,0 +1,84 @@
+\section{Modélisation}
+
+\subsection{Introduction}
+L'objectif de ce chapitre est de détailler la conception, l'entraînement et la validation du modèle prédictif de désabonnement (\textit{Churn}). Après avoir préparé les données, nous avons dû faire face à des défis techniques majeurs, notamment le phénomène de \textit{Data Leakage}, qui ont nécessité une révision profonde de notre approche pour garantir un modèle non seulement performant, mais surtout réaliste et exploitable en conditions réelles.
+
+\subsection{Choix de l'algorithme : Random Forest}
+Pour répondre à cette problématique de classification binaire, nous avons sélectionné l'algorithme \textbf{Random Forest} (Forêt Aléatoire). Ce choix repose sur trois piliers :
+\begin{itemize}
+	\item \textbf{Robustesse :} En combinant les prédictions de multiples arbres de décision, il limite naturellement le risque de surapprentissage (\textit{overfitting}).
+	\item \textbf{Interprétabilité :} Il permet d'extraire l'importance des variables, offrant ainsi une vision claire des leviers business.
+	\item \textbf{Non-linéarité :} Il capture efficacement les relations complexes entre les comportements d'achat et la fidélité.
+\end{itemize}
+
+\subsection{Justification du paramétrage : Pourquoi 200 arbres ?}
+\begin{lstlisting}[language=Python, caption=Configuration et entraînement du modèle Random Forest]
+	# Configuration du modèle
+	model = RandomForestClassifier(
+	n_estimators=200,      # 200 arbres de decision
+	max_depth=10,          # Profondeur max (evite le surapprentissage)
+	class_weight="balanced",# Gere le desequilibre des classes
+	random_state=42,       # Reproductibilite
+	n_jobs=-1              # Utilise toute la puissance CPU
+	)
+	
+	print("Entrainement en cours...")
+	model.fit(X_train, y_train)
+	print("Entrainement termine !")
+\end{lstlisting}
+Nous avons configuré le modèle avec le paramètre \texttt{n\_estimators=200}. Ce choix n'est pas arbitraire :
+\begin{enumerate}
+	\item \textbf{Réduction de la variance :} 200 arbres permettent de stabiliser les votes de la forêt de manière bien plus efficace que la valeur par défaut (100), garantissant que le modèle ne soit pas sensible à de petites variations du jeu d'entraînement.
+	\item \textbf{Loi des rendements décroissants :} Au-delà de 200 arbres, l'amélioration de la performance devient négligeable, tandis que le coût computationnel (mémoire et temps de calcul) augmente de façon linéaire. C'est le \textbf{point d'équilibre optimal} pour notre dataset.
+\end{enumerate}
+
+\subsection{Le défi du Data Leakage (Fuite de données)}
+Une étape cruciale de ce projet a été l'identification d'une "triche" algorithmique. Lors des premiers tests, le modèle affichait un score parfait de 100\%. Une telle performance trahissait la présence de \textit{Data Leakage}. 
+
+Certaines variables comme \texttt{Recency}, \texttt{ChurnRiskCategory} ou \texttt{CustomerType} (contenant la catégorie "Perdu") donnaient indirectement la réponse au modèle. Pour assainir l'apprentissage, nous avons pris la décision radicale de supprimer l'intégralité de ces colonnes. Ce nettoyage a permis de passer d'un modèle "tricheur" à un modèle réellement prédictif basé sur le comportement client.
+
+\subsection{Évaluation et Résultats définitifs}
+Une fois le pipeline de données assaini, nous avons obtenu les résultats suivants, qui reflètent désormais la capacité réelle du modèle à généraliser sur de nouveaux clients.
+
+\begin{verbatim}
+	============================================================
+	ENTRAÎNEMENT DU MODÈLE DE PRÉDICTION DU CHURN
+	============================================================
+	Dimensions - X_train: (3497, 69), X_test: (875, 69)
+	
+	--- RÉSULTATS DE L'ÉVALUATION (SUR LE SET DE TEST) ---
+	precision    recall  f1-score   support
+	
+	Fidèle       0.93      0.95      0.94       584
+	Churné       0.90      0.86      0.88       291
+	
+	accuracy                           0.92       875
+	macro avg       0.91      0.90      0.91       875
+	weighted avg       0.92      0.92      0.92       875
+	
+	Score ROC-AUC : 0.9689
+	Score F1 (Churn) : 0.8768
+\end{verbatim}
+
+\subsubsection{Validation Croisée et Stabilité}
+Pour garantir la fiabilité de ces chiffres, nous avons implémenté une validation croisée à 5 plis (\textit{5-fold Cross-Validation}). Cette méthode entraîne et teste le modèle sur 5 découpes différentes du jeu de données pour vérifier sa stabilité.
+
+Le code utilisé pour cette validation est le suivant :
+\begin{lstlisting}[language=Python, caption=Implémentation de la validation croisée]
+	cv_scores = cross_val_score(model, X_train, y_train, 
+	cv=5, scoring="roc_auc", n_jobs=-1)
+\end{lstlisting}
+
+Les résultats obtenus (\textbf{0.9653 ± 0.0058}) confirment que le modèle est extrêmement stable et que ses performances ne sont pas dues au hasard du découpage des données.
+
+\subsection{Analyse de l'importance des variables}
+Le modèle identifie les facteurs clés suivants comme étant les plus prédictifs du départ d'un client :
+\begin{itemize}
+	\item \textbf{FavoriteSeason\_Automne (19.4\%) :} La saisonnalité est le facteur prédominant.
+	\item \textbf{PreferredMonth (14.1\%) :} Confirme l'impact du calendrier sur l'attrition.
+	\item \textbf{LoyaltyLevel (7.4\%) :} L'ancienneté et le niveau d'engagement.
+	\item \textbf{MonetaryTotal \& TotalTransactions :} Le volume d'achat historique.
+\end{itemize}
+
+\subsection{Conclusion du chapitre}
+En conclusion, ce chapitre a permis de transformer un modèle initialement biaisé par des fuites de données en un outil de prédiction robuste et fiable. Avec un rappel de 86\% sur le Churn et une précision de 90\%, l'entreprise dispose désormais d'un levier puissant pour identifier les clients à risque avant leur départ effectif. Le modèle, sauvegardé sous le nom \texttt{model.pkl}, est prêt à être intégré dans le processus décisionnel de l'équipe marketing.
