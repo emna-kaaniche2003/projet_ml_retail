@@ -1,0 +1,39 @@
+\section{Prétraitement des Données (Preprocessing)}
+
+La phase de prétraitement est une étape critique de notre pipeline. L'objectif est de transformer nos données brutes en une matrice mathématique compréhensible par nos algorithmes de Machine Learning, tout en évitant rigoureusement toute fuite de données (\textit{Data Leakage}).
+
+\subsection{Nettoyage initial et Feature Engineering}
+Avant toute transformation mathématique, nous avons assaini la base de données :
+\begin{itemize}
+	\item \textbf{Gestion des adresses IP (\texttt{LastLoginIP})} : Les modèles ne pouvant traiter des chaînes de caractères brutes, nous avons appliqué du \textit{Feature Engineering}. Nous avons créé une variable binaire \texttt{IP\_IsPrivate} et extrait le premier octet de l'IP (\texttt{IP\_FirstOctet}) pour capter un proxy géographique. La colonne d'origine a ensuite été supprimée.
+	\item \textbf{Correction des anomalies temporelles} : La colonne \texttt{MonetaryTotal} contenait des dates parasites issues de saisies erronées. Celles-ci ont été identifiées et converties en valeurs manquantes (\texttt{NaN}) pour être traitées proprement.
+\end{itemize}
+
+\subsection{Prévention de la Fuite de Données (Train/Test Split)}
+
+\begin{tcolorbox}[title=Justification de la Séparation]
+	Une règle d'or de notre pipeline a été de diviser le jeu de données en un ensemble d'entraînement (Train - 80\%) et un ensemble de test (Test - 20\%) \textbf{avant} d'appliquer la moindre imputation ou normalisation. Si nous avions calculé des moyennes ou supprimé des colonnes sur l'ensemble global, des informations du jeu de test auraient influencé l'entraînement de notre modèle (\textit{Data Leakage}).
+\end{tcolorbox}
+
+\subsection{Traitement des valeurs manquantes et aberrantes}
+Suite à la séparation, les opérations suivantes ont été apprises (\textit{fit}) uniquement sur le Train, puis appliquées (\textit{transform}) sur le Train et le Test :
+\begin{itemize}
+	\item \textbf{Suppression des colonnes creuses} : Les variables présentant plus de 50\% de valeurs manquantes ont été supprimées, car elles apportent plus de bruit statistique que de signal prédictif.
+	\item \textbf{Clipping des valeurs aberrantes (\textit{Outliers})} : Les variables comme \texttt{SupportTicketsCount} ont été bornées pour éviter que des valeurs extrêmes ne faussent la variance de nos données.
+	\item \textbf{Imputation par la médiane} : Pour les variables numériques contenant des \texttt{NaN}, nous avons choisi l'imputation par la médiane, celle-ci étant beaucoup moins sensible aux valeurs extrêmes que la moyenne.
+\end{itemize}
+
+\subsection{Encodage des variables catégorielles}
+Les variables textuelles ont été numérisées selon leur nature :
+\begin{itemize}
+	\item \textbf{Encodage Ordinal} : Utilisé pour les variables possédant une hiérarchie intrinsèque (ex: \texttt{LoyaltyLevel}). Nous avons assigné des valeurs croissantes (1, 2, 3...) pour respecter l'ordre naturel des catégories.
+	\item \textbf{One-Hot Encoding} : Utilisé pour les variables nominales sans ordre logique (ex: \texttt{Gender}). Cela évite que l'algorithme ne déduise faussement qu'une catégorie est mathématiquement supérieure à une autre.
+	\item \textbf{Target Encoding} : Pour la variable \texttt{Country}, le One-Hot Encoding aurait créé trop de colonnes. Nous avons donc remplacé chaque pays par son taux moyen de \textit{Churn} observé dans le jeu d'entraînement.
+\end{itemize}
+
+\subsection{Mise à l'échelle (Standardization)}
+Afin de mettre toutes les variables sur un pied d'égalité, nous avons appliqué un \texttt{StandardScaler}.
+
+\begin{tcolorbox}[title=Justification Stratégique]
+	Nous avons pris soin d'appliquer cette normalisation \textbf{uniquement sur les variables continues}. Les variables binaires (issues du One-Hot Encoding) n'ont pas été normalisées afin de préserver leur interprétabilité stricte (0 ou 1) et d'éviter de distordre leur poids statistique.
+\end{tcolorbox}

@@ -1,0 +1,19 @@
+# Analyse de données et manipulation
+pandas
+numpy
+
+# Visualisation (pour les matrices de corrélation et l'exploration)
+matplotlib
+seaborn
+
+# Machine Learning (Prétraitement, Imputation, Modèles, Métriques)
+scikit-learn
+
+# Recherche d'hyperparamètres avancée (mentionné dans le document)
+optuna
+
+# Interface Web (pour la partie déploiement)
+flask
+
+# Serveur Jupyter pour VS Code
+ipykernel
