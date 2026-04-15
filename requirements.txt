@@ -17,3 +17,7 @@ flask
 
 # Serveur Jupyter pour VS Code
 ipykernel
+
+
+joblib
+openpyxl
