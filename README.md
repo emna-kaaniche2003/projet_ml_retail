@@ -71,6 +71,12 @@ pip install -r requirements.txt
 
 ## Guide d'utilisation
 
+
+
+https://github.com/user-attachments/assets/53581d60-e78e-4e77-b292-f59ba683308b
+
+
+
 ### Étape 1 — Prétraitement des données
 
 Place le fichier brut dans `data/raw/` (CSV ou XLSX), puis :
